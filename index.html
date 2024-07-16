@@ -4,15 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="manifest" href="/manifest.json">
-
     <div class="header">
         <img src="logo.webp" alt="Açıklayıcı Metin" class="center-image">
     </div>
     <title>Stok Kodu Barkoda Dönüştürme</title>
     <style>
         .center-image {
-            width: 25%; /* Resmin genişliğini %25 yap */
-            height: auto; /* Yüksekliği otomatik ayarla */
+            width: 25%;
+            height: auto;
         }
         body {
             font-family: Arial, sans-serif;
@@ -26,13 +25,13 @@
         }
         table {
             margin: 0 auto;
-            border-collapse: separate; /* Kenar boşlukları ayrı olacak şekilde ayarlayın */
-            border-spacing: 0 10px; /* Satırlar arasında boşluk */
+            border-collapse: separate;
+            border-spacing: 0 10px;
         }
         th, td {
             padding: 10px;
             border: 1px solid #ddd;
-            background-color: #fff; /* Arka plan rengi */
+            background-color: #fff;
         }
         #preview {
             margin-top: 20px;
@@ -44,20 +43,39 @@
         }
         @media (max-width: 600px) {
             th, td {
-                display: block; /* Blok yapısı */
-                width: 100%; /* Genişlik %100 */
+                display: block;
+                width: 100%;
             }
-
             tr {
-                margin-bottom: 10px; /* Satırlar arasında boşluk */
+                margin-bottom: 10px;
             }
         }
         .footer {
-            text-align: center; /* Ortalar */
+            text-align: center;
             position: relative;
             bottom: 0;
             width: 100%;
-            background-color: #f1f1f1; /* Arka plan rengi */
+            background-color: #f1f1f1;
+        }
+        #ocrModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.75);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        #ocrModal video {
+            width: 80%;
+            max-width: 600px;
+            height: auto;
+        }
+        #ocrModal button {
+            margin-top: 20px;
         }
     </style>
 </head>
@@ -88,10 +106,9 @@
     </footer>
 
     <!-- Modal for OCR -->
-    <div id="ocrModal" style="display:none;">
-        <video id="video" width="400" height="300" autoplay></video>
+    <div id="ocrModal">
+        <video id="video" autoplay></video>
         <button id="capture" onclick="captureImage()">Capture</button>
-        <canvas id="canvas" style="display:none;"></canvas>
     </div>
 </body>
 </html>
@@ -113,6 +130,7 @@
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.1/dist/tesseract.min.js"></script>
 <script>
     let pdfData = null;
+    let currentStockCodeInput = null;
 
     function addRow() {
         const table = document.getElementById('barcodeTable');
@@ -227,27 +245,26 @@
     // OCR Functionality
     function startOcr(button) {
         const ocrModal = document.getElementById('ocrModal');
-        ocrModal.style.display = 'block';
+        ocrModal.style.display = 'flex';
 
         const video = document.getElementById('video');
-        const stockCodeInput = button.closest('tr').querySelector('.stockCode');
+        currentStockCodeInput = button.closest('tr').querySelector('.stockCode');
 
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(stream => {
-                video.srcObject = stream;
-                video.play();
-            })
-            .catch(err => {
-                console.error("Error accessing webcam: ", err);
-            });
-
-        document.getElementById('capture').onclick = function () {
-            captureImage(video, stockCodeInput);
-        };
+        navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: { exact: "environment" } } 
+        })
+        .then(stream => {
+            video.srcObject = stream;
+            video.play();
+        })
+        .catch(err => {
+            console.error("Error accessing webcam: ", err);
+        });
     }
 
-    function captureImage(video, stockCodeInput) {
-        const canvas = document.getElementById('canvas');
+    function captureImage() {
+        const video = document.getElementById('video');
+        const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
@@ -262,7 +279,7 @@
         ).then(({ data: { text } }) => {
             const trimmedText = text.trim();
             if (trimmedText) {
-                stockCodeInput.value = trimmedText;
+                currentStockCodeInput.value = trimmedText;
             } else {
                 alert('Barkod veya stok kodu okunamadı.');
             }
@@ -283,5 +300,4 @@
         document.getElementById('ocrModal').style.display = 'none';
     }
 </script>
-</body>
 </html>
