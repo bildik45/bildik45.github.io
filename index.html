@@ -32,17 +32,17 @@
     <div id="cameraContainer">
         <video id="videoElement" autoplay playsinline></video>
     </div>
-    <p id="stockNumberDisplay">Stok Kodu: <span id="stockNumber"></span></p>
+    <p id="code128Display">CODE128 Kodu: <span id="code128Number"></span></p>
 
     <script src="https://unpkg.com/@zxing/library@0.26.0"></script>
-    <script src="https://unpkg.com/jsbarcode@3.11.0/dist/JsBarcode.all.min.js"></script>
     <script>
         let videoElement;
-        let videoStream;
+        let codeReader;
 
         // Sayfa yüklendiğinde başlatılacak fonksiyon
         window.onload = function() {
             videoElement = document.getElementById('videoElement');
+            codeReader = new ZXing.BrowserBarcodeReader();
             startCamera();
         };
 
@@ -57,40 +57,25 @@
                 };
 
                 // Kamera erişimi iste
-                videoStream = await navigator.mediaDevices.getUserMedia(constraints);
-                videoElement.srcObject = videoStream;
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                videoElement.srcObject = stream;
                 
-                // Kameranın netleme özelliğini aç
-                const track = videoStream.getVideoTracks()[0];
-                const capabilities = track.getCapabilities();
-                if (capabilities.focusMode.includes('continuous')) {
-                    await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
-                }
+                // Barkod okuyucuyu başlat
+                codeReader.decodeFromVideoElement(videoElement, async (result, err) => {
+                    if (result && result.format === 'CODE_128') {
+                        // CODE128 formatına dönüştür
+                        document.getElementById('code128Number').textContent = result.text;
+                    } else if (result) {
+                        console.log('Bulunan format:', result.format);
+                        alert('Lütfen CODE128 formatında bir barkod tarayın.');
+                    }
+                    if (err) {
+                        console.error('Barkod okuma hatası:', err);
+                        alert('Barkod okunamadı. Lütfen daha net bir görüntü sağlayın.');
+                    }
+                });
             } catch (error) {
                 console.error('Kamera erişim hatası:', error);
-            }
-        }
-
-        // Barkod okuyucu fonksiyonu
-        async function findStockNumber() {
-            try {
-                // Barkod okuyucu kütüphanesini yükle (ZXing kullanılabilir)
-                const codeReader = new ZXing.BrowserQRCodeReader();
-                
-                // Video elementinden görüntüyü al
-                const result = await codeReader.decodeFromVideoElement(videoElement);
-
-                // Barkodu ekranda göster
-                document.getElementById('stockNumber').textContent = result.text;
-
-                // Barkoddan stok numarasını alın
-                const stockNumber = result.text;
-
-                // Eğer stok numarası ile bir işlem yapmak istiyorsanız burada kullanabilirsiniz
-                // Örneğin, bir API'ye gönderebilir veya başka bir işlem yapabilirsiniz
-            } catch (error) {
-                console.error('Barkod okuma hatası:', error);
-                alert('Barkod okunamadı. Lütfen daha net bir görüntü sağlayın.');
             }
         }
     </script>
