@@ -3,53 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local Barcode Scanner</title>
-    <script src="https://unpkg.com/@zxing/library@latest"></script>
+    <title>Barkod Tarayıcı</title>
+    <style>
+        video {
+            width: 100%;
+            height: auto;
+        }
+        #barcode {
+            font-size: 1.5em;
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
-    <h1>Local Barcode Scanner</h1>
-    <video id="video" width="100%" height="auto" autoplay></video>
-    <p>Detected Serial Number: <span id="serialNumber"></span></p>
+    <h1>Barkod Tarayıcı</h1>
+    <video autoplay></video>
+    <p id="barcode">Bekleniyor...</p>
 
+    <script src="https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.20/dist/index.js"></script>
     <script>
-        const video = document.getElementById('video');
-        const serialNumberElement = document.getElementById('serialNumber');
+        (async function() {
+            // WebAssembly polyfill for some browsers
+            try { 
+                await window['BarcodeDetector'].getSupportedFormats(); 
+            } catch { 
+                window['BarcodeDetector'] = barcodeDetectorPolyfill.BarcodeDetectorPolyfill; 
+            }
 
-        // Load zxing-typescript library
-        const { BrowserBarcodeReader } = window['zxing'];
+            // Create a BarcodeDetector for simple retail operations.
+            const barcodeDetector = new BarcodeDetector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e"] });
 
-        // Function to start camera and detect barcodes
-        async function startBarcodeScanner() {
-            try {
-                // Request back camera explicitly
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: 'environment' } } });
-                video.srcObject = stream;
-                video.play();
+            // Get a stream for the rear camera, else the front (or side?) camera.
+            const videoElement = document.querySelector('video');
+            videoElement.srcObject = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
 
-                const codeReader = new BrowserBarcodeReader();
+            // Let's scan barcodes forever
+            while (true) {
+                // Try to detect barcodes in the current video frame.
+                const barcodes = await barcodeDetector.detect(videoElement);
 
-                // Function to continuously scan frames
-                async function scanFrame() {
-                    try {
-                        const result = await codeReader.decodeFromVideoElement(video);
-                        if (result) {
-                            serialNumberElement.textContent = result.text;
-                        }
-                    } catch (error) {
-                        console.error('Barcode detection error:', error);
-                    }
-
-                    requestAnimationFrame(scanFrame);
+                // Continue loop if no barcode was found.
+                if (barcodes.length === 0) {
+                    // Scan interval 50 ms like in other barcode scanner demos.
+                    // The higher the interval the longer the battery lasts.
+                    await new Promise(r => setTimeout(r, 50));
+                    continue;
                 }
 
-                scanFrame();
+                // We expect a single barcode.
+                // It's possible to compare X/Y coordinates to get the center-most one.
+                // One can also do "preferred symbology" logic here.
+                document.getElementById("barcode").innerText = barcodes[0].rawValue;
 
-            } catch (error) {
-                console.error('Camera access error:', error);
+                // Notify user that a barcode has been found.
+                navigator.vibrate(200);
+
+                // Give the user time to find another product to scan
+                await new Promise(r => setTimeout(r, 1000));
             }
-        }
-
-        startBarcodeScanner();
+        })();
     </script>
 </body>
 </html>
