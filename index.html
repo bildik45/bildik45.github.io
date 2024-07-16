@@ -3,76 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kameradan Barkod Tarama ve Stok Numarası Bulma</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin-top: 50px;
-        }
-        #video-preview {
-            width: 100%;
-            max-width: 600px;
-            margin: auto;
-            margin-bottom: 20px;
-        }
-        #result {
-            margin-bottom: 20px;
-        }
-    </style>
-</head>
-<body>
-    <h2>Kameradan Barkod Tarama ve Stok Numarası Bulma</h2>
-    <video id="video-preview"></video>
-    <div id="result"></div>
-
-    <script src="https://cdn.jsdelivr.net/npm/@zxing/library@3.0.1/build/zxing.min.js"></script>
-    <script>
-        // Kamera üzerinden barkod tarama işlemini başlatan fonksiyon
-        async function startScanning() {
-            const codeReader = new ZXing.BrowserQRCodeReader(); // veya BrowserBarcodeReader() kullanarak QR ve diğer barkod türlerini tara
-
+    <title>Barkod Okuma</title>
+    <script type="module">
+        import { BrowserBarcodeReader } from './zxing.esm.min.js'; // ZXing kütüphane dosyasının yolu
+        
+        const barcodeReader = new BrowserBarcodeReader();
+        
+        async function startCamera() {
             try {
-                const videoInputDevices = await codeReader.getVideoInputDevices();
-                const selectedDeviceId = videoInputDevices[0].deviceId; // ilk video cihazını kullanır
-
-                const constraints = {
-                    video: {
-                        deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined
-                    }
-                };
-
-                const stream = await navigator.mediaDevices.getUserMedia(constraints);
-                document.getElementById('video-preview').srcObject = stream;
-
-                codeReader.decodeFromVideoDevice(selectedDeviceId, 'video-preview', (result, err) => {
-                    if (result) {
-                        console.log(result.text);
-                        findStockNumber(result.text);
-                        codeReader.reset(); // taramayı durdur
-                    }
-                    if (err && !(err instanceof ZXing.NotFoundException)) {
-                        console.error(err);
-                    }
-                });
-            } catch (err) {
-                console.error(err);
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const videoElement = document.createElement('video');
+                videoElement.srcObject = stream;
+                document.body.appendChild(videoElement);
+                await videoElement.play();
+                scanBarcode(videoElement);
+            } catch (error) {
+                console.error('Kamera erişimi hatası:', error);
             }
         }
-
-        function findStockNumber(barcode) {
-            // Burada basit bir örnek, gerçek bir veritabanı veya API'den stok numarası almak gerekir
-            // Örneğin, EAN-13'in ilk 7 hanesi üretici ya da firma kodunu temsil eder
-            var manufacturerCode = barcode.substring(1, 7); // Örneğin: 699536
-
-            var stockNumber = "STOK-" + manufacturerCode;
-
-            // Sonucu ekranda göster
-            document.getElementById('result').innerHTML = "<p>Stok Numarası: " + stockNumber + "</p>";
+        
+        async function scanBarcode(videoElement) {
+            try {
+                const result = await barcodeReader.decodeFromVideoElement(videoElement);
+                console.log('Okunan barkod:', result.text);
+                // Burada barkodunuzu işleyebilir ve stok numarasını bulabilirsiniz.
+                findStockNumber(result.text);
+            } catch (error) {
+                console.error('Barkod okuma hatası:', error);
+            }
         }
-
-        // Taramayı başlat
-        startScanning();
+        
+        function findStockNumber(barcodeText) {
+            // Barkodunuzdan stok numarasını bulacak kodları buraya ekleyin.
+            // Örneğin, barkodunuzun formatına ve içeriğine bağlı olarak bir işlem yapabilirsiniz.
+            // Örneğin, sabit bir pozisyonda veya formatla stok numarasını ayıklayabilirsiniz.
+            console.log('Stok numarası:', barcodeText); // Örnek olarak burada sadece gösterildi.
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            startCamera();
+        });
     </script>
+</head>
+<body>
+    <h1>Barkod Okuma ve Stok Numarası Bulma</h1>
+    <!-- Kamera görüntüsü buraya eklenecek -->
 </body>
 </html>
