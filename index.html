@@ -21,7 +21,8 @@
         // Function to start camera and detect barcodes
         async function startBarcodeScanner() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                // Request back camera explicitly
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: 'environment' } } });
                 video.srcObject = stream;
                 video.play();
 
