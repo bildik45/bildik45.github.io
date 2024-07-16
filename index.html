@@ -3,45 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Barkod Okuma ve Stok Numarası Bulma</title>
-    <!-- ZXing kütüphane dosyasının yolunu belirtin -->
+    <title>Arka Kamera ile Barkod Okuma</title>
+    <!-- ZXing kütüphane dosyasını ekleyin -->
     <script src="https://unpkg.com/@zxing/library@latest"></script>
     <style>
-        video {
+        #videoElement {
             width: 100%;
             max-width: 400px;
             margin: 20px 0;
+            transform: scaleX(-1); /* Kamerayı yansıtarak arka kamerayı kullanın */
         }
     </style>
 </head>
 <body>
-    <h1>Barkod Okuma ve Stok Numarası Bulma</h1>
+    <h1>Arka Kamera ile Barkod Okuma ve Stok Numarası Bulma</h1>
     <video id="videoElement" autoplay></video>
     <script>
         const videoElement = document.getElementById('videoElement');
-        const codeReader = new ZXing.BrowserQRCodeReader(); // Barkod türüne göre ayarlayabilirsiniz
+        const codeReader = new ZXing.BrowserQRCodeReader(); // QR kodu yerine barkod okumak için ayarlayabilirsiniz
 
         // Kamera erişimini başlatma
         function startCamera() {
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(function(stream) {
-                    videoElement.srcObject = stream;
-                    videoElement.play();
-                    scanBarcode();
+            navigator.mediaDevices.enumerateDevices()
+                .then(devices => {
+                    let rearCamera = devices.find(device => device.label.toLowerCase().includes('back'));
+                    if (!rearCamera) {
+                        console.error('Arka kamera bulunamadı.');
+                        return;
+                    }
+
+                    navigator.mediaDevices.getUserMedia({
+                        video: {
+                            deviceId: rearCamera.deviceId,
+                            facingMode: 'environment' // Arka kamerayı kullan
+                        }
+                    })
+                    .then(stream => {
+                        videoElement.srcObject = stream;
+                        videoElement.play();
+                        scanBarcode();
+                    })
+                    .catch(err => {
+                        console.error('Kamera erişimi hatası:', err);
+                    });
                 })
-                .catch(function(err) {
-                    console.error('Kamera erişimi hatası:', err);
+                .catch(err => {
+                    console.error('Cihazları listeleme hatası:', err);
                 });
         }
 
         // Barkod okuma işlemi
         function scanBarcode() {
             codeReader.decodeFromVideoElement(videoElement, 'video')
-                .then(function(result) {
+                .then(result => {
                     console.log('Okunan barkod:', result.text);
                     findStockNumber(result.text);
                 })
-                .catch(function(err) {
+                .catch(err => {
                     console.error('Barkod okuma hatası:', err);
                     scanBarcode(); // Tekrar dene
                 });
@@ -55,7 +73,7 @@
         }
 
         // Sayfa yüklendiğinde kamera erişimini başlat
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', () => {
             startCamera();
         });
     </script>
