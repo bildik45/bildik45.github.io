@@ -3,79 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Arka Kamera ile Barkod Okuma</title>
-    <!-- ZXing kütüphane dosyasını ekleyin -->
-    <script src="https://unpkg.com/@zxing/library@latest"></script>
+    <title>Live Barkod Tarayıcı</title>
     <style>
-        #videoElement {
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        #cameraContainer {
             width: 100%;
             max-width: 400px;
-            margin: 20px 0;
-            transform: scaleX(-1); /* Kamerayı yansıtarak arka kamerayı kullanın */
+            margin-bottom: 20px;
+        }
+
+        #videoElement {
+            width: 100%;
+            border: 2px solid #333;
         }
     </style>
 </head>
 <body>
-    <h1>Arka Kamera ile Barkod Okuma ve Stok Numarası Bulma</h1>
-    <video id="videoElement" autoplay></video>
+    <h1>Live Barkod Tarayıcı</h1>
+    <div id="cameraContainer">
+        <video id="videoElement" autoplay playsinline></video>
+    </div>
+    <p id="lotNumberDisplay">Lot Kodu: <span id="lotNumber"></span></p>
+
+    <script src="https://unpkg.com/@zxing/library@0.26.0"></script>
     <script>
-        const videoElement = document.getElementById('videoElement');
-        const codeReader = new ZXing.BrowserQRCodeReader(); // QR kodu yerine barkod okumak için ayarlayabilirsiniz
+        let videoElement;
+        let videoStream;
 
-        // Kamera erişimini başlatma
-        function startCamera() {
-            navigator.mediaDevices.enumerateDevices()
-                .then(devices => {
-                    let rearCamera = devices.find(device => device.label.toLowerCase().includes('back'));
-                    if (!rearCamera) {
-                        console.error('Arka kamera bulunamadı.');
-                        return;
-                    }
-
-                    navigator.mediaDevices.getUserMedia({
-                        video: {
-                            deviceId: rearCamera.deviceId,
-                            facingMode: 'environment' // Arka kamerayı kullan
-                        }
-                    })
-                    .then(stream => {
-                        videoElement.srcObject = stream;
-                        videoElement.play();
-                        scanBarcode();
-                    })
-                    .catch(err => {
-                        console.error('Kamera erişimi hatası:', err);
-                    });
-                })
-                .catch(err => {
-                    console.error('Cihazları listeleme hatası:', err);
-                });
-        }
-
-        // Barkod okuma işlemi
-        function scanBarcode() {
-            codeReader.decodeFromVideoElement(videoElement, 'video')
-                .then(result => {
-                    console.log('Okunan barkod:', result.text);
-                    findStockNumber(result.text);
-                })
-                .catch(err => {
-                    console.error('Barkod okuma hatası:', err);
-                    scanBarcode(); // Tekrar dene
-                });
-        }
-
-        // Stok numarasını bulma işlemi
-        function findStockNumber(barcodeText) {
-            // Burada barkod verisini işleyerek stok numarasını bulabilirsiniz.
-            console.log('Stok numarası:', barcodeText);
-            // Örneğin, burada başka işlemler yapabilirsiniz.
-        }
-
-        // Sayfa yüklendiğinde kamera erişimini başlat
-        document.addEventListener('DOMContentLoaded', () => {
+        // Sayfa yüklendiğinde başlatılacak fonksiyon
+        window.onload = function() {
+            videoElement = document.getElementById('videoElement');
             startCamera();
-        });
+        };
+
+        // Kamera başlatma fonksiyonu
+        async function startCamera() {
+            try {
+                // Kamera erişimi iste
+                videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                videoElement.srcObject = videoStream;
+            } catch (error) {
+                console.error('Kamera erişim hatası:', error);
+            }
+        }
+
+        // Barkod okuyucu fonksiyonu
+        async function findLotNumber() {
+            try {
+                // Barkod okuyucu kütüphanesini yükle (ZXing kullanılabilir)
+                const codeReader = new ZXing.BrowserQRCodeReader();
+                
+                // Video elementinden görüntüyü al
+                const result = await codeReader.decodeFromVideoElement(videoElement);
+
+                // Lot kodunu ekranda göster
+                document.getElementById('lotNumber').textContent = result.text;
+            } catch (error) {
+                console.error('Barkod okuma hatası:', error);
+                alert('Barkod okunamadı. Lütfen daha net bir görüntü sağlayın.');
+            }
+        }
     </script>
 </body>
 </html>
