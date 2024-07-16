@@ -68,6 +68,7 @@
             justify-content: center;
             align-items: center;
             z-index: 1000;
+            flex-direction: column;
         }
         #ocrModal video {
             width: 80%;
@@ -108,7 +109,7 @@
     <!-- Modal for OCR -->
     <div id="ocrModal">
         <video id="video" autoplay></video>
-        <button id="capture" onclick="stopOcr()">Durdur</button>
+        <button id="capture" onclick="stopOcr()">Kapat</button>
     </div>
 </body>
 </html>
@@ -243,44 +244,43 @@
     }
 
     // OCR Functionality
-function startOcr(button) {
-    const ocrModal = document.getElementById('ocrModal');
-    ocrModal.style.display = 'flex';
+    function startOcr(button) {
+        const ocrModal = document.getElementById('ocrModal');
+        ocrModal.style.display = 'flex';
 
-    const video = document.getElementById('video');
-    currentStockCodeInput = button.closest('tr').querySelector('.stockCode');
+        const video = document.getElementById('video');
+        currentStockCodeInput = button.closest('tr').querySelector('.stockCode');
 
-    Quagga.init({
-        inputStream: {
-            name: "Live",
-            type: "LiveStream",
-            target: video,
-            constraints: {
-                facingMode: "user" // Use the front camera
+        Quagga.init({
+            inputStream: {
+                name: "Live",
+                type: "LiveStream",
+                target: video,
+                constraints: {
+                    facingMode: "user" // Use the front camera
+                }
+            },
+            decoder: {
+                readers: ["code_128_reader"] // Read Code 128 barcodes
             }
-        },
-        decoder: {
-            readers: ["code_128_reader"] // Read Code 128 barcodes
-        }
-    }, function(err) {
-        if (err) {
-            console.error(err);
-            return;
-        }
-        console.log("Initialization finished. Ready to start");
-        Quagga.start();
-    });
+        }, function(err) {
+            if (err) {
+                console.error(err);
+                return;
+            }
+            console.log("Initialization finished. Ready to start");
+            Quagga.start();
+        });
 
-    Quagga.onDetected(function(data) {
-        const code = data.codeResult.code;
-        currentStockCodeInput.value = code;
-        stopOcr(); // Stop the camera when barcode is detected
-    });
-}
+        Quagga.onDetected(function(data) {
+            const code = data.codeResult.code;
+            currentStockCodeInput.value = code;
+            stopOcr(); // Stop the camera when barcode is detected
+        });
+    }
 
-function stopOcr() {
-    Quagga.stop();
-    document.getElementById('ocrModal').style.display = 'none';
-}
-
+    function stopOcr() {
+        Quagga.stop();
+        document.getElementById('ocrModal').style.display = 'none';
+    }
 </script>
