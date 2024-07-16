@@ -56,12 +56,17 @@
         });
 
         function findStockNumber(barcode) {
-            // Burada basit bir örnek, gerçek bir veritabanı veya API'den stok numarası almak gerekir
-            var stockNumber = "STOK-" + barcode.substring(0, 4); // Örnek: Barkodun ilk 4 karakterini alarak bir stok numarası oluşturuyoruz
+    // EAN-13 formatında bir barkod alıyoruz, örneğin: 8699536096547
+    // EAN-13'in ilk 7 hanesi üretici ya da firma kodunu temsil eder
+    var manufacturerCode = barcode.substring(1, 7); // Örneğin: 699536
 
-            // Sonucu ekranda göster
-            document.getElementById('result').innerHTML = "<p>Stok Numarası: " + stockNumber + "</p>";
-        }
+    // Burada basit bir örnek, gerçek bir veritabanı veya API'den stok numarası almak gerekir
+    var stockNumber = "STOK-" + manufacturerCode;
+
+    // Sonucu ekranda göster
+    document.getElementById('result').innerHTML = "<p>Stok Numarası: " + stockNumber + "</p>";
+}
+
     </script>
 </body>
 </html>
