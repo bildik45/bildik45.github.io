@@ -10,7 +10,7 @@
             text-align: center;
             margin-top: 50px;
         }
-        #interactive {
+        #video-preview {
             width: 100%;
             max-width: 600px;
             margin: auto;
@@ -23,50 +23,56 @@
 </head>
 <body>
     <h2>Kameradan Barkod Tarama ve Stok Numarası Bulma</h2>
-    <div id="interactive" class="viewport"></div>
+    <video id="video-preview"></video>
     <div id="result"></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/quagga/dist/quagga.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@zxing/library@3.0.1/build/zxing.min.js"></script>
     <script>
-        Quagga.init({
-            inputStream : {
-                name : "Live",
-                type : "LiveStream",
-                target: document.querySelector('#interactive'),
-                constraints: {
-                    facingMode: 'environment' // veya 'user' olarak ayarlayabilirsiniz
-                },
-            },
-            decoder : {
-                readers : ["ean_reader"] // Barkod türünü burada belirleyebilirsiniz (örneğin, EAN)
-            }
-        }, function(err) {
-            if (err) {
-                console.error(err);
-                return;
-            }
-            console.log("QuaggaJS başarıyla yüklendi.");
-            Quagga.start();
-        });
+        // Kamera üzerinden barkod tarama işlemini başlatan fonksiyon
+        async function startScanning() {
+            const codeReader = new ZXing.BrowserQRCodeReader(); // veya BrowserBarcodeReader() kullanarak QR ve diğer barkod türlerini tara
 
-        Quagga.onDetected(function(result) {
-            var barcode = result.codeResult.code;
-            findStockNumber(barcode);
-            Quagga.stop();
-        });
+            try {
+                const videoInputDevices = await codeReader.getVideoInputDevices();
+                const selectedDeviceId = videoInputDevices[0].deviceId; // ilk video cihazını kullanır
+
+                const constraints = {
+                    video: {
+                        deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined
+                    }
+                };
+
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                document.getElementById('video-preview').srcObject = stream;
+
+                codeReader.decodeFromVideoDevice(selectedDeviceId, 'video-preview', (result, err) => {
+                    if (result) {
+                        console.log(result.text);
+                        findStockNumber(result.text);
+                        codeReader.reset(); // taramayı durdur
+                    }
+                    if (err && !(err instanceof ZXing.NotFoundException)) {
+                        console.error(err);
+                    }
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
 
         function findStockNumber(barcode) {
-    // EAN-13 formatında bir barkod alıyoruz, örneğin: 8699536096547
-    // EAN-13'in ilk 7 hanesi üretici ya da firma kodunu temsil eder
-    var manufacturerCode = barcode.substring(1, 7); // Örneğin: 699536
+            // Burada basit bir örnek, gerçek bir veritabanı veya API'den stok numarası almak gerekir
+            // Örneğin, EAN-13'in ilk 7 hanesi üretici ya da firma kodunu temsil eder
+            var manufacturerCode = barcode.substring(1, 7); // Örneğin: 699536
 
-    // Burada basit bir örnek, gerçek bir veritabanı veya API'den stok numarası almak gerekir
-    var stockNumber = "STOK-" + manufacturerCode;
+            var stockNumber = "STOK-" + manufacturerCode;
 
-    // Sonucu ekranda göster
-    document.getElementById('result').innerHTML = "<p>Stok Numarası: " + stockNumber + "</p>";
-}
+            // Sonucu ekranda göster
+            document.getElementById('result').innerHTML = "<p>Stok Numarası: " + stockNumber + "</p>";
+        }
 
+        // Taramayı başlat
+        startScanning();
     </script>
 </body>
 </html>
