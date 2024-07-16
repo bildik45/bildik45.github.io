@@ -3,32 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Barkod Numarası ile Stok Numarası Bulma</title>
+    <title>Kameradan Barkod Tarama ve Stok Numarası Bulma</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             text-align: center;
             margin-top: 50px;
         }
-        .input-container {
+        #interactive {
+            width: 100%;
+            max-width: 600px;
+            margin: auto;
+            margin-bottom: 20px;
+        }
+        #result {
             margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
-    <h2>Barkod Numarası ile Stok Numarası Bulma</h2>
-    <div class="input-container">
-        <label for="barcode">Barkod Numarası:</label>
-        <input type="text" id="barcode" placeholder="Barkod numarasını giriniz">
-        <button onclick="findStockNumber()">Stok Numarasını Bul</button>
-    </div>
+    <h2>Kameradan Barkod Tarama ve Stok Numarası Bulma</h2>
+    <div id="interactive" class="viewport"></div>
     <div id="result"></div>
 
+    <script src="https://cdn.jsdelivr.net/npm/quagga/dist/quagga.min.js"></script>
     <script>
-        function findStockNumber() {
-            // Barkod numarasını al
-            var barcode = document.getElementById('barcode').value;
+        Quagga.init({
+            inputStream : {
+                name : "Live",
+                type : "LiveStream",
+                target: document.querySelector('#interactive'),
+                constraints: {
+                    facingMode: 'environment' // veya 'user' olarak ayarlayabilirsiniz
+                },
+            },
+            decoder : {
+                readers : ["ean_reader"] // Barkod türünü burada belirleyebilirsiniz (örneğin, EAN)
+            }
+        }, function(err) {
+            if (err) {
+                console.error(err);
+                return;
+            }
+            console.log("QuaggaJS başarıyla yüklendi.");
+            Quagga.start();
+        });
 
+        Quagga.onDetected(function(result) {
+            var barcode = result.codeResult.code;
+            findStockNumber(barcode);
+            Quagga.stop();
+        });
+
+        function findStockNumber(barcode) {
             // Burada basit bir örnek, gerçek bir veritabanı veya API'den stok numarası almak gerekir
             var stockNumber = "STOK-" + barcode.substring(0, 4); // Örnek: Barkodun ilk 4 karakterini alarak bir stok numarası oluşturuyoruz
 
