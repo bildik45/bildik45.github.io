@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Barkod Tarayıcı</title>
+    <title>Live Barkod Tarayıcı (Arka Kamera)</title>
     <style>
         body {
             display: flex;
@@ -28,7 +28,7 @@
     </style>
 </head>
 <body>
-    <h1>Live Barkod Tarayıcı</h1>
+    <h1>Live Barkod Tarayıcı (Arka Kamera)</h1>
     <div id="cameraContainer">
         <video id="videoElement" autoplay playsinline></video>
     </div>
@@ -48,9 +48,23 @@
         // Kamera başlatma fonksiyonu
         async function startCamera() {
             try {
+                // Arka kamera için constraints tanımla
+                const constraints = {
+                    video: {
+                        facingMode: 'environment' // Arka kamerayı kullan
+                    }
+                };
+
                 // Kamera erişimi iste
-                videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                videoStream = await navigator.mediaDevices.getUserMedia(constraints);
                 videoElement.srcObject = videoStream;
+                
+                // Kameranın netleme özelliğini aç
+                const track = videoStream.getVideoTracks()[0];
+                const capabilities = track.getCapabilities();
+                if (capabilities.focusMode.includes('continuous')) {
+                    await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+                }
             } catch (error) {
                 console.error('Kamera erişim hatası:', error);
             }
