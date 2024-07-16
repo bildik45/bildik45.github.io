@@ -21,43 +21,40 @@
     <video autoplay></video>
     <p id="barcode">Bekleniyor...</p>
 
-    <script src="https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.20/dist/index.js"></script>
     <script>
         (async function() {
-            // WebAssembly polyfill for some browsers
-            try { 
-                await window['BarcodeDetector'].getSupportedFormats(); 
-            } catch { 
-                window['BarcodeDetector'] = barcodeDetectorPolyfill.BarcodeDetectorPolyfill; 
+            // Check if the Barcode Detection API is supported
+            if (!('BarcodeDetector' in window)) {
+                alert('Barcode Detection API not supported by this browser.');
+                return;
             }
 
-            // Create a BarcodeDetector for simple retail operations.
-            const barcodeDetector = new BarcodeDetector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e"] });
+            // Create a BarcodeDetector instance
+            const barcodeDetector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
 
-            // Get a stream for the rear camera, else the front (or side?) camera.
+            // Get a stream for the rear camera
             const videoElement = document.querySelector('video');
             videoElement.srcObject = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
 
             // Let's scan barcodes forever
             while (true) {
-                // Try to detect barcodes in the current video frame.
+                // Try to detect barcodes in the current video frame
                 const barcodes = await barcodeDetector.detect(videoElement);
 
-                // Continue loop if no barcode was found.
+                // Continue loop if no barcode was found
                 if (barcodes.length === 0) {
-                    // Scan interval 50 ms like in other barcode scanner demos.
-                    // The higher the interval the longer the battery lasts.
+                    // Scan interval 50 ms like in other barcode scanner demos
+                    // The higher the interval the longer the battery lasts
                     await new Promise(r => setTimeout(r, 50));
                     continue;
                 }
 
-                // We expect a single barcode.
-                // It's possible to compare X/Y coordinates to get the center-most one.
-                // One can also do "preferred symbology" logic here.
+                // We expect a single barcode
+                // It's possible to compare X/Y coordinates to get the center-most one
+                // One can also do "preferred symbology" logic here
                 document.getElementById("barcode").innerText = barcodes[0].rawValue;
 
-                // Notify user that a barcode has been found.
+                // Notify user that a barcode has been found
                 navigator.vibrate(200);
 
                 // Give the user time to find another product to scan
