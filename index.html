@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Barkod Tarayıcı (Arka Kamera)</title>
+    <title>Barkod Okuyucu</title>
     <style>
         body {
             display: flex;
@@ -28,13 +28,14 @@
     </style>
 </head>
 <body>
-    <h1>Live Barkod Tarayıcı (Arka Kamera)</h1>
+    <h1>Barkod Okuyucu</h1>
     <div id="cameraContainer">
         <video id="videoElement" autoplay playsinline></video>
     </div>
-    <p id="lotNumberDisplay">Lot Kodu: <span id="lotNumber"></span></p>
+    <p id="stockNumberDisplay">Stok Kodu: <span id="stockNumber"></span></p>
 
     <script src="https://unpkg.com/@zxing/library@0.26.0"></script>
+    <script src="https://unpkg.com/jsbarcode@3.11.0/dist/JsBarcode.all.min.js"></script>
     <script>
         let videoElement;
         let videoStream;
@@ -71,7 +72,7 @@
         }
 
         // Barkod okuyucu fonksiyonu
-        async function findLotNumber() {
+        async function findStockNumber() {
             try {
                 // Barkod okuyucu kütüphanesini yükle (ZXing kullanılabilir)
                 const codeReader = new ZXing.BrowserQRCodeReader();
@@ -79,8 +80,14 @@
                 // Video elementinden görüntüyü al
                 const result = await codeReader.decodeFromVideoElement(videoElement);
 
-                // Lot kodunu ekranda göster
-                document.getElementById('lotNumber').textContent = result.text;
+                // Barkodu ekranda göster
+                document.getElementById('stockNumber').textContent = result.text;
+
+                // Barkoddan stok numarasını alın
+                const stockNumber = result.text;
+
+                // Eğer stok numarası ile bir işlem yapmak istiyorsanız burada kullanabilirsiniz
+                // Örneğin, bir API'ye gönderebilir veya başka bir işlem yapabilirsiniz
             } catch (error) {
                 console.error('Barkod okuma hatası:', error);
                 alert('Barkod okunamadı. Lütfen daha net bir görüntü sağlayın.');
