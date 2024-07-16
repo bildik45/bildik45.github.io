@@ -3,81 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Barkod Okuyucu</title>
-    <style>
-        body {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            font-family: Arial, sans-serif;
-        }
-
-        #cameraContainer {
-            width: 100%;
-            max-width: 400px;
-            margin-bottom: 20px;
-        }
-
-        #videoElement {
-            width: 100%;
-            border: 2px solid #333;
-        }
-    </style>
+    <title>Local Barcode Scanner</title>
+    <script src="https://unpkg.com/@zxing/library@latest"></script>
 </head>
 <body>
-    <h1>Barkod Okuyucu</h1>
-    <div id="cameraContainer">
-        <video id="videoElement" autoplay playsinline></video>
-    </div>
-    <p id="code128Display">CODE128 Kodu: <span id="code128Number"></span></p>
+    <h1>Local Barcode Scanner</h1>
+    <video id="video" width="100%" height="auto" autoplay></video>
+    <p>Detected Serial Number: <span id="serialNumber"></span></p>
 
-    <script src="https://unpkg.com/@zxing/library@0.26.0"></script>
     <script>
-        let videoElement;
-        let codeReader;
+        const video = document.getElementById('video');
+        const serialNumberElement = document.getElementById('serialNumber');
 
-        // Sayfa yüklendiğinde başlatılacak fonksiyon
-        window.onload = function() {
-            videoElement = document.getElementById('videoElement');
-            codeReader = new ZXing.BrowserBarcodeReader();
-            startCamera();
-        };
+        // Load zxing-typescript library
+        const { BrowserBarcodeReader } = window['zxing'];
 
-        // Kamera başlatma fonksiyonu
-        async function startCamera() {
+        // Function to start camera and detect barcodes
+        async function startBarcodeScanner() {
             try {
-                // Arka kamera için constraints tanımla
-                const constraints = {
-                    video: {
-                        facingMode: 'environment' // Arka kamerayı kullan
-                    }
-                };
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                video.srcObject = stream;
+                video.play();
 
-                // Kamera erişimi iste
-                const stream = await navigator.mediaDevices.getUserMedia(constraints);
-                videoElement.srcObject = stream;
-                
-                // Barkod okuyucuyu başlat
-                codeReader.decodeFromVideoElement(videoElement, async (result, err) => {
-                    if (result && result.format === 'CODE_128') {
-                        // CODE128 formatına dönüştür
-                        document.getElementById('code128Number').textContent = result.text;
-                    } else if (result) {
-                        console.log('Bulunan format:', result.format);
-                        alert('Lütfen CODE128 formatında bir barkod tarayın.');
+                const codeReader = new BrowserBarcodeReader();
+
+                // Function to continuously scan frames
+                async function scanFrame() {
+                    try {
+                        const result = await codeReader.decodeFromVideoElement(video);
+                        if (result) {
+                            serialNumberElement.textContent = result.text;
+                        }
+                    } catch (error) {
+                        console.error('Barcode detection error:', error);
                     }
-                    if (err) {
-                        console.error('Barkod okuma hatası:', err);
-                        alert('Barkod okunamadı. Lütfen daha net bir görüntü sağlayın.');
-                    }
-                });
+
+                    requestAnimationFrame(scanFrame);
+                }
+
+                scanFrame();
+
             } catch (error) {
-                console.error('Kamera erişim hatası:', error);
+                console.error('Camera access error:', error);
             }
         }
+
+        startBarcodeScanner();
     </script>
 </body>
 </html>
