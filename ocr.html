@@ -32,65 +32,74 @@
   <script>
 navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
   .then(function(stream) {
-    document.getElementById('video').srcObject = stream;
+    const video = document.getElementById('video');
+    video.srcObject = stream;
+
+    video.onloadedmetadata = () => {
+      const canvas = document.getElementById('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      startQuagga();
+    };
+  })
+  .catch(function(err) {
+    console.log("Error: " + err);
   });
 
-Quagga.init({
-  inputStream : {
-    name : "Live",
-    type : "LiveStream",
-    target: document.querySelector('#video')
-  },
-  decoder : {
-    readers : ["code_128_reader"]
-  }
-}, function(err) {
-  if (err) {
-    console.log(err);
-    return;
-  }
-  Quagga.start();
-});
+function startQuagga() {
+  Quagga.init({
+    inputStream: {
+      name: "Live",
+      type: "LiveStream",
+      target: document.querySelector('#video')
+    },
+    decoder: {
+      readers: ["code_128_reader", "ean_reader"]
+    }
+  }, function(err) {
+    if (err) {
+      console.log(err);
+      return;
+    }
+    Quagga.start();
+  });
 
-Quagga.onDetected(function(result) {
-  const code = result.codeResult.code;
-  const canvas = document.getElementById('output');
-  const context = canvas.getContext('2d');
-  const video = document.getElementById('video');
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
+  Quagga.onDetected(function(result) {
+    const code = result.codeResult.code;
+    const canvas = document.getElementById('canvas');
+    const context = canvas.getContext('2d');
+    const video = document.getElementById('video');
 
-  // Draw blue rectangle around barcode
-  const drawingCanvas = Quagga.canvas.dom.overlay;
-  const drawingCtx = Quagga.canvas.ctx.overlay;
-  const box = result.box;
-  drawingCtx.clearRect(0, 0, canvas.width, canvas.height);
-  drawingCtx.strokeStyle = 'blue';
-  drawingCtx.lineWidth = 2;
-  drawingCtx.beginPath();
-  drawingCtx.moveTo(box[0][0], box[0][1]);
-  drawingCtx.lineTo(box[1][0], box[1][1]);
-  drawingCtx.lineTo(box[2][0], box[2][1]);
-  drawingCtx.lineTo(box[3][0], box[3][1]);
-  drawingCtx.closePath();
-  drawingCtx.stroke();
+    // Clear canvas
+    context.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Capture the area below the barcode for OCR
-  const [x, y, width, height] = [box[0][0], box[0][1], box[1][0] - box[0][0], box[3][1] - box[0][1]];
-  const ocrRegion = context.getImageData(x, y + height, width, height / 2);
+    // Draw blue rectangle around barcode
+    const drawingCanvas = Quagga.canvas.dom.overlay;
+    const drawingCtx = Quagga.canvas.ctx.overlay;
+    const box = result.line;
+    context.strokeStyle = 'blue';
+    context.lineWidth = 2;
+    context.beginPath();
+    context.moveTo(box[0].x, box[0].y);
+    context.lineTo(box[1].x, box[1].y);
+    context.stroke();
 
-  Tesseract.recognize(ocrRegion, 'eng', { logger: m => console.log(m) })
-    .then(({ data: { text } }) => {
-      document.getElementById('stockNumberText').innerText = text.trim();
+    // Capture the area below the barcode for OCR
+    const barcodeHeight = box[1].y - box[0].y;
+    const ocrRegion = context.getImageData(box[0].x, box[1].y + 5, box[1].x - box[0].x, barcodeHeight);
 
-      // Draw green rectangle around detected stock number
-      context.clearRect(0, 0, canvas.width, canvas.height);
-      context.putImageData(ocrRegion, x, y + height);
-      context.strokeStyle = 'green';
-      context.lineWidth = 2;
-      context.strokeRect(x, y + height, width, height / 2);
-    });
-});
+    Tesseract.recognize(ocrRegion, 'eng', { logger: m => console.log(m) })
+      .then(({ data: { text } }) => {
+        document.getElementById('stockNumberText').innerText = text.trim();
+
+        // Draw green rectangle around detected stock number
+        context.strokeStyle = 'green';
+        context.lineWidth = 2;
+        context.strokeRect(box[0].x, box[1].y + 5, box[1].x - box[0].x, barcodeHeight);
+      });
+  });
+}
+
 
   </script>>
 </body>
