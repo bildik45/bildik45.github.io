@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Barcode and Stock Number Detection</title>
+  <style>
+    #video {
+      width: 100%;
+      height: auto;
+    }
+    #output {
+      border: 2px solid blue;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    #stockNumber {
+      border: 2px solid green;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+  </style>
+</head>
+<body>
+  <video id="video" autoplay></video>
+  <canvas id="output" style="display:none;"></canvas>
+  <div id="stockNumberText"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.0/dist/tesseract.min.js"></script>
+  <script>
+navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+  .then(function(stream) {
+    document.getElementById('video').srcObject = stream;
+  });
+
+Quagga.init({
+  inputStream : {
+    name : "Live",
+    type : "LiveStream",
+    target: document.querySelector('#video')
+  },
+  decoder : {
+    readers : ["code_128_reader"]
+  }
+}, function(err) {
+  if (err) {
+    console.log(err);
+    return;
+  }
+  Quagga.start();
+});
+
+Quagga.onDetected(function(result) {
+  const code = result.codeResult.code;
+  const canvas = document.getElementById('output');
+  const context = canvas.getContext('2d');
+  const video = document.getElementById('video');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  // Draw blue rectangle around barcode
+  const drawingCanvas = Quagga.canvas.dom.overlay;
+  const drawingCtx = Quagga.canvas.ctx.overlay;
+  const box = result.box;
+  drawingCtx.clearRect(0, 0, canvas.width, canvas.height);
+  drawingCtx.strokeStyle = 'blue';
+  drawingCtx.lineWidth = 2;
+  drawingCtx.beginPath();
+  drawingCtx.moveTo(box[0][0], box[0][1]);
+  drawingCtx.lineTo(box[1][0], box[1][1]);
+  drawingCtx.lineTo(box[2][0], box[2][1]);
+  drawingCtx.lineTo(box[3][0], box[3][1]);
+  drawingCtx.closePath();
+  drawingCtx.stroke();
+
+  // Capture the area below the barcode for OCR
+  const [x, y, width, height] = [box[0][0], box[0][1], box[1][0] - box[0][0], box[3][1] - box[0][1]];
+  const ocrRegion = context.getImageData(x, y + height, width, height / 2);
+
+  Tesseract.recognize(ocrRegion, 'eng', { logger: m => console.log(m) })
+    .then(({ data: { text } }) => {
+      document.getElementById('stockNumberText').innerText = text.trim();
+
+      // Draw green rectangle around detected stock number
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.putImageData(ocrRegion, x, y + height);
+      context.strokeStyle = 'green';
+      context.lineWidth = 2;
+      context.strokeRect(x, y + height, width, height / 2);
+    });
+});
+
+  </script>>
+</body>
+</html>
